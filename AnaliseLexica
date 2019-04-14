@@ -1,0 +1,3 @@
+O analisador léxico recebe o código fonte e a partir de uma sequência de caracteres produz
+uma sequência de símbolos chamados tokens. Também elimina espaços em branco e comen-
+tários, além de identificar erros léxicos, simplificando a etapa da análise sintática.
