@@ -1,3 +1,7 @@
 O analisador léxico recebe o código fonte e a partir de uma sequência de caracteres produz
 uma sequência de símbolos chamados tokens. Também elimina espaços em branco e comen-
 tários, além de identificar erros léxicos, simplificando a etapa da análise sintática.
+
+A geração do código do analisador léxico usando o Ocamllex é feita utilizando os comandos:
+> ocamllex lexicoJS.mll
+> ocamlc -c lexicoJS.ml
