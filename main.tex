@@ -1934,11 +1934,12 @@ Após editar as mensagens de erro basta compilar o arquivo com os erros e compil
 \begin{terminal}
 menhir sintatico.mly --compile-errors sintatico.msg > erroSint.ml
 \end{terminal}
+
+\subsection{Compilação: }
 Para compilar todo o projeto com o ocamlbuild:
 \begin{terminal}
 ocamlbuild -use-ocamlfind -use-menhir -menhir " menhir --table " -package menhirLib sintaticoTest.byte
 \end{terminal}
-\textbf{Observação: }
 para facilitar a compilação, um .sh se faz necessário.\newline
 run.sh
 \begin{terminal}
@@ -1960,7 +1961,9 @@ Ao executar o script acima todo projeto é compilado e o ocmal é iniciado, para
 \begin{terminal}
 parse_arq "nano12.js";;
 \end{terminal}
-Com isso a arvore sintatica abstrata desse programa .js testado é gerada.
+
+\subsubsection{Árvore Sintática Abstrata}
+Com isso a árvore sintática abstrata desse programa .js testado é gerada.
 
 \begin{terminal}
 - : Ast.programa option =
@@ -3340,7 +3343,6 @@ let obtem_nome_tipo_var exp = let open T in
   | ExpVar (v,tipo) ->
     (match v with
       | A.VarSimples (nome,_) -> (nome,tipo)
-      | _ -> failwith "obtem_nome_tipo_var: nao implementado"
     )
   | _ -> failwith "obtem_nome_tipo_var: nao eh variavel"
 
@@ -3352,55 +3354,55 @@ let pega_int exp =
 let pega_float exp =
   match exp with
   |  T.ExpReal (i,_) -> i
-  | _ -> failwith "pega_float: nao eh float"  
+  | _ -> failwith "pega_float: nao eh float"
 
 let pega_string exp =
   match exp with
   |  T.ExpString (s,_) -> s
   | _ -> failwith "pega_string: nao eh string"
 
+let pega_char exp =
+  match exp with
+  |  T.ExpChar (i,_) -> i
+  | _ -> failwith "pega_char: nao eh caracter"
+
 let pega_bool exp =
   match exp with
   |  T.ExpBool (b,_) -> b
-  | _ -> failwith "pega_bool: nao eh booleano"  
+  | _ -> failwith "pega_bool: nao eh booleano"
 
 type classe_op = Aritmetico | Relacional | Logico | Cadeia
 
 let classifica op =
   let open A in
   match op with
-    Or
-  | And  -> Logico
-  | Menor
-  | Maior
-  | Igual
-  | MenorIgual
-  | MaiorIgual
-  | Difer -> Relacional
+   And
+  | Or -> Logico
   | Mais
   | Menos
   | Mult
+  | Div
   | Mod
-  | Expoente
-  | Div -> Aritmetico
+  | Expoente -> Aritmetico
+  | Menor
+  | Maior
+  | MenorIgual
+  | Igual
+  | MaiorIgual
+  | Difer -> Relacional
   | Concat -> Cadeia
-
-
-(*let mesmo_tipo pos msg tinf tdec =
-  if tinf <> tdec
-  then
-    let msg = Printf.sprintf msg (nome_tipo tinf) (nome_tipo tdec) in
-    failwith (msg_erro_pos pos msg)*)
+  
 
 let rec interpreta_exp amb exp =
-  let open A in
-  let open T in
+let open A in
+let open T in
+
   match exp with
   | ExpVoid
   | ExpInt _
-  | ExpReal _
   | ExpString _
   | ExpChar _
+  | ExpReal _
   | ExpBool _   -> exp
   | ExpVar _ ->
     let (id,tipo) = obtem_nome_tipo_var exp in
@@ -3425,10 +3427,18 @@ let rec interpreta_exp amb exp =
       (match tesq with
        | TipoInt ->
          (match op with
-          | Mais ->     ExpInt (pega_int vesq + pega_int vdir, top)
+          | Mais  -> ExpInt (pega_int vesq + pega_int vdir, top)
           | Menos -> ExpInt (pega_int vesq - pega_int vdir, top)
-          | Mult ->     ExpInt (pega_int vesq * pega_int vdir, top)
-          | Div  ->      ExpInt (pega_int vesq / pega_int vdir, top)
+          | Mult  -> ExpInt (pega_int vesq * pega_int vdir, top)
+          | Div   -> ExpInt (pega_int vesq / pega_int vdir, top)
+          | _ -> failwith "interpreta_aritmetico"
+         )
+       | TipoReal ->
+         (match op with
+          | Mais  -> ExpReal (pega_float vesq +. pega_float vdir, top)
+          | Menos -> ExpReal (pega_float vesq -. pega_float vdir, top)
+          | Mult  -> ExpReal (pega_float vesq *. pega_float vdir, top)
+          | Div   -> ExpReal (pega_float vesq /. pega_float vdir, top)
           | _ -> failwith "interpreta_aritmetico"
          )
        | _ -> failwith "interpreta_aritmetico"
@@ -3441,10 +3451,20 @@ let rec interpreta_exp amb exp =
           | Menor -> ExpBool (pega_int vesq < pega_int vdir, top)
           | MenorIgual -> ExpBool (pega_int vesq <= pega_int vdir, top)
           | Maior  -> ExpBool (pega_int vesq > pega_int vdir, top)
-          | MaiorIgual -> ExpBool (pega_int vesq >= pega_int vdir, top)
+          | MaiorIgual  -> ExpBool (pega_int vesq >= pega_int vdir, top)
           | Igual   -> ExpBool (pega_int vesq == pega_int vdir, top)
           | Difer   -> ExpBool (pega_int vesq != pega_int vdir, top)
-          | _ -> failwith "interpreta_relacional"
+          | _ -> failwith "interpreta_relacional int"
+         )
+       | TipoReal ->
+         (match op with
+          | Menor -> ExpBool (pega_float vesq < pega_float vdir, top)
+          | MenorIgual -> ExpBool (pega_float vesq <= pega_float vdir, top)
+          | Maior  -> ExpBool (pega_float vesq > pega_float vdir, top)
+          | MaiorIgual  -> ExpBool (pega_float vesq >= pega_float vdir, top)
+          | Igual   -> ExpBool (pega_float vesq == pega_float vdir, top)
+          | Difer   -> ExpBool (pega_float vesq != pega_float vdir, top)
+          | _ -> failwith "interpreta_relacional f"
          )
        | TipoString ->
          (match op with
@@ -3484,16 +3504,16 @@ let rec interpreta_exp amb exp =
          )
        | _ ->  failwith "interpreta_cadeia"
       )
-
-    in
+      in
     let valor = (match (classifica op) with
           Aritmetico -> interpreta_aritmetico ()
-        | Relacional -> interpreta_relacional ()
         | Logico -> interpreta_logico ()
+        | Relacional -> interpreta_relacional ()
         | Cadeia -> interpreta_cadeia ()
       )
     in
-      valor
+      valor  
+
 
   | ExpChamada (id, args, tipo) ->
     let open Amb in
@@ -3537,17 +3557,16 @@ and interpreta_cmd amb cmd =
         deve parar retornando o valor indicado, sem realizar os demais comandos.
     *)
     (match exp with
-     (* Se a função não retornar nada, então retorne ExpVoid *)
+     (* Se a função não retornar nada, verifica se ela foi declarada como void *)
        None -> raise (Valor_de_retorno ExpVoid)
      | Some e ->
        (* Avalia a expressão e retorne o resultado *)
        let e1 = interpreta_exp amb e in
        raise (Valor_de_retorno e1)
     )
-
   | CmdSe (teste, entao, senao) ->
     let teste1 = interpreta_exp amb teste in
-    (match teste1 with
+   (match teste1 with
        ExpBool (true,_) ->
        (* Interpreta cada comando do bloco 'então' *)
        List.iter (interpreta_cmd amb) entao
@@ -3566,22 +3585,28 @@ and interpreta_cmd amb cmd =
     and (elem1,tipo) = obtem_nome_tipo_var elem in
     Amb.atualiza_var amb elem1 tipo (Some exp)
 
- (* | CmdChamada exp -> ignore( interpreta_exp amb exp)*)
+  | ComandoExpress exp -> ignore( interpreta_exp amb exp)
 
-  | CmdEntrada exps ->
+  | CmdEntrada exp ->
     (* Obtem os nomes e os tipos de cada um dos argumentos *)
-    let nts = List.map (obtem_nome_tipo_var) exps in
+    let nts = obtem_nome_tipo_var exp in
     let leia_var (nome,tipo) =
       let valor =
         (match tipo with
-         | A.TipoInt    -> T.ExpInt    (read_int (),  tipo)
-         | A.TipoString -> T.ExpString (read_line (), tipo)
+         | A.TipoInt    -> T.ExpInt    (read_int (),   tipo)
+         | A.TipoString -> T.ExpString (read_line (),  tipo)
+         | A.TipoReal  -> T.ExpReal  (read_float (), tipo)
+         | A.TipoChar   ->let str = (read_line ()).[0] in T.ExpChar   (str,  tipo)
          | _ -> failwith "leia_var: nao implementado"
         )
       in  Amb.atualiza_var amb nome tipo (Some valor)
     in
     (* Lê o valor para cada argumento e atualiza o ambiente *)
-    List.iter leia_var nts
+    leia_var nts
+
+  | CmdEntrada exps ->
+    let _ = interpreta_cmd amb (CmdEntrada exps) in
+      print_newline()
 
   | CmdSaida exps ->
     (* Interpreta cada argumento da função 'saida' *)
@@ -3599,20 +3624,64 @@ and interpreta_cmd amb cmd =
     let _ = List.iter imprima exps in
     print_newline ()
 
-  | CmdWhile (teste, corpo) ->
-      (* Criando uma função recursiva para simular o loop do while. *)
-      let rec iteracao amb teste corpo =
-          (* Antes de "executar" o corpo do while, primeiro devemos *)
-          (* avaliar o teste.                                       *)
-          let vteste = interpreta_exp amb teste in
-         (match vteste with
-          | ExpBool (true,_) ->
-              (* Interpretando os comandos do corpo do while *)
-              let _ = List.iter (interpreta_cmd amb) corpo in
-              (* Repetindo o laço while *)
-              iteracao amb teste corpo
-          | _ -> ()) in
-      iteracao amb teste corpo
+  | CmdSaida exps ->
+    (* Interpreta cada argumento da função 'saida' *)
+    let exps = List.map (interpreta_exp amb) exps in
+    let imprima exp =
+      (match exp with
+       | T.ExpInt (n,_) ->      let _ = print_int n in print_string " "
+       | T.ExpString (s,_) -> let _ = print_string s in print_string " "
+       | T.ExpBool (b,_) ->
+         let _ = print_string (if b then "true" else "false")
+         in print_string " "
+       | _ -> failwith "imprima: nao implementado"
+      )
+    in
+    let _ = List.iter imprima exps in
+    let _ = print_newline () in 
+      print_newline ()
+  
+   
+  | CmdWhile (teste, doit) ->
+     let teste1 = interpreta_exp amb teste in
+   (match teste1 with
+       ExpBool (true,_) ->
+       (* Interpreta uma iteraçao comando do corpo do while *)
+       let _ = List.iter (interpreta_cmd amb) doit in 
+       (* interpreta recursivamente as possíveis demais iterações do comando *)
+        interpreta_cmd amb (CmdWhile (teste, doit))
+       | _ -> ()
+   )
+
+  | CmdCase (teste, cases, senao) ->
+     let teste1 = interpreta_exp amb teste in
+    let rec match_cases listacase = ( match listacase with 
+      head::tail ->
+      (* Percorre a lista de cases *)
+      (match head with Case (l,c) ->
+      (* se a expressao do case for igual 
+      a expressao do comando swith, então*)
+       if (interpreta_exp amb l) = teste1 then 
+        (* avalie cada comando desse case *)
+        List.iter (interpreta_cmd amb) c
+        (*caso não sejam iguais, avalie o próximo case*)
+        else match_cases tail )
+        (* se alcançou o fim da lista, é porque não acho nenhum case compatível,
+        logo, hora de executar o bloco default*)
+      | [] ->( match senao with 
+        Some c -> 
+        List.iter (interpreta_cmd amb) c
+        (* não sei de um comando return em Ocaml,
+         acredito que esse seja o jeito correto*)
+        | None -> ignore()) )
+    in match_cases cases
+
+    | CmdFor (variavel, exp, condicao, var,inc, doit) ->
+    let _ = interpreta_cmd amb (CmdAtrib (variavel, exp)) in
+    (* let inc = interpreta_cmd amb (CmdAtrib (var, inc)) in *)
+    let inc = CmdAtrib (var, inc) in
+    interpreta_cmd amb (CmdWhile (condicao, List.append doit [inc]))
+  
 
 let insere_declaracao_var amb dec =
     match dec with
@@ -3625,6 +3694,7 @@ let insere_declaracao_fun amb dec =
         let nome = fst fn_nome in
         let formais = List.map (fun (n,t) -> ((fst n), t)) fn_formais in
         Amb.insere_fun amb nome formais fn_locais fn_tiporet fn_corpo
+
 
 (* Lista de cabeçalhos das funções pré definidas *)
 let fn_predefs = let open A in [
@@ -3640,11 +3710,13 @@ let interprete ast =
   (* cria ambiente global inicialmente vazio *)
   let amb_global = Amb.novo_amb [] in
   let _ = declara_predefinidas amb_global in
-  let (A.Programa (decs_globais, decs_funs, corpo)) = ast in
+  let (A.Programa ( decs_globais, decs_funs, corpo)) = ast in
   let _ = List.iter (insere_declaracao_var amb_global) decs_globais in
   let _ = List.iter (insere_declaracao_fun amb_global) decs_funs in
+  (* Interpreta a função principal *)
   let resultado = List.iter (interpreta_cmd amb_global) corpo in
   resultado
+
 \end{terminal}
 interpreteTest.ml
 \begin{terminal}
@@ -3797,7 +3869,7 @@ let message =
     | 20 ->
         "estado 20: esperava um tipo. Exemplo\n   arranjo [1..10] de inteiro;\n"
     | _ ->
-        Printf.sprintf "%d" s
+        raise Not_found
 
 let posicao lexbuf =
     let pos = lexbuf.lex_curr_p in
@@ -3861,8 +3933,9 @@ let verifica_tipos nome =
     Some (Some ast) -> semantico ast
   | _ -> failwith "Nada a fazer!\n"
 
+
 let interprete nome =
-  let tast, amb = verifica_tipos nome in
+  let tast,amb = verifica_tipos nome in
   Interprete.interprete tast
 \end{terminal}
 \subsubsection{Ambiente Intérprete}
@@ -3872,15 +3945,15 @@ module Tab = Tabsimb
 module A = Ast
 module T = Tast
 
-type entrada_fn = {
+type entrada_fn = { 
   tipo_fn:  A.tipo;
-  formais: (A.ident * A.tipo) list;
+  formais: (string * A.tipo) list;
   locais:  A.declaracoes;
   corpo: T.expressao A.comandos
 }
 
 type entrada =  EntFun of entrada_fn
-                        |  EntVar of A.tipo * (T.expressao option)
+             |  EntVar of A.tipo * (T.expressao option)
 
 type t = {
   ambv : entrada Tab.tabela
@@ -3918,15 +3991,41 @@ type expressao = ExpVar of (expressao variavel) * tipo
               | ExpString of string * tipo
               | ExpChar of char * tipo
               | ExpReal of float * tipo
+              | ExpVoid
               | ExpBool of bool * tipo
               | ExpOp of (oper * tipo) * (expressao * tipo) * (expressao * tipo)
               | ExpChamada of ident * (expressao expressoes) * tipo
-              | ExpVoid  
 
 \end{terminal}
 
 \subsection{Compilação do Intérprete}
+.ocamlinit
+\begin{terminal}
+let () =
+  try Topdirs.dir_directory (Sys.getenv "OCAML_TOPLEVEL_PATH")
+  with Not_found -> ()
+;;
 
+#use "topfind";;
+#require "menhirLib";;
+#directory "_build";;
+#load "sintatico.cmo";;
+#load "lexico.cmo";;
+#load "ast.cmo";;
+#load "sast.cmo";;
+#load "tast.cmo";;
+#load "tabsimb.cmo";;
+#load "ambiente.cmo";;
+#load "semantico.cmo";;
+#load "ambInterp.cmo";;
+#load "interprete.cmo";;
+#load "interpreteTest.cmo";;
+
+open Ast
+open Ambiente
+open InterpreteTest
+\end{terminal}
+Comandos no terminal
 \begin{terminal}
 rm -rf  _build  interpreteTest.byte 
 ## opcional: funciona da mesma forma sem esse comando
@@ -3954,20 +4053,49 @@ Erro sintático na linha 3, coluna 10 22 - 17.
 Exception: Failure "Nada a fazer!\n".
 
 \end{terminal}
-Exemplos com execução sem erros:
+Exemplos com execução sem erros: \newline\newline
+Teste micro08
+\begin{terminal}
+# interprete "micro08.js";;
+Digite um numero:  
+8
+O numero 8 eh menor que 10 
+Digite um numero:  
+11
+O numero 11 eh maior que 10 
+Digite um numero:  
+0
+O numero 0 eh menor que 10 
+- : unit = ()
+\end{terminal}
+Teste micro10
 \begin{terminal}
 # interprete "micro10.js";;
 Digite um numero 
 6
 O fatorial de:  6  é 720 
 - : unit = ()
-
+\end{terminal}
+Teste micro11
+\begin{terminal}
 # interprete "micro11.js";;
 Digite um número 
--9
+3
+Numero positivo 
+- : unit = ()
+# interprete "micro11.js";;
+Digite um número 
+-3
 Numero negativo 
 - : unit = ()
+# interprete "micro11.js";;
+Digite um número 
+0
+Zero 
+- : unit = ()
 \end{terminal}
+
+\subsubsection{Curiosidade}
 As operações das seções anteriores também podem ser realizadas, como por exemplo: obter a árvore sintática abstrata ou a árvore tipada.
 \begin{terminal}
 # parse_arq "micro10.js";;
@@ -4188,6 +4316,720 @@ Some
  <abstr>)
 \end{terminal}
 
+\section{Código de Três Endereços}
+O código de três endereços é composto por uma seqüência de instruções envolvendo operações binárias ou unárias e uma atribuição. O nome "três endereços" está associado à especificação, em uma instrução, de no máximo três variáveis: duas para os operadores binários e uma para o resultado. \newline
+Assim, expressões envolvendo diversas operações são decompostas nesse código em uma série de instruções, eventualmente com a utilização de variáveis temporárias introduzidas na tradução. Dessa forma, obtém-se um código mais próximo da estrutura da linguagem assembly e, conseqüentemente, de mais fácil conversão para a linguagem-alvo.\newline
+Uma possível especificação de uma linguagem de três endereços envolve quatro tipos básicos de instruções: expressões com atribuição, desvios, invocação de rotinas e acesso indexado e indireto.
+
+\subsection{Arquivos do Código de Três Endereços}
+\subsubsection{Cod3End.ml}
+\begin{terminal}
+open Printf
+
+open Ast
+open Tast
+open Codigo
+
+let conta_temp = ref 0
+let conta_rotulos = ref (Hashtbl.create 5)
+
+let zera_contadores () =
+  begin
+    conta_temp := 0;
+    conta_rotulos := Hashtbl.create 5
+  end
+  
+let novo_temp () =
+   let numero = !conta_temp in
+   let _ = incr conta_temp in
+   Temp numero
+   
+let novo_rotulo prefixo =
+  if Hashtbl.mem !conta_rotulos prefixo
+  then
+     let numero = Hashtbl.find !conta_rotulos prefixo in
+     let _ = Hashtbl.replace !conta_rotulos prefixo (numero + 1) in
+     Rotulo (prefixo ^ (string_of_int numero))     
+  else
+     let _ = Hashtbl.add !conta_rotulos prefixo 1 in
+     Rotulo (prefixo ^ "0")
+
+(* Codigo para impressão *)
+
+let endr_to_str = function
+   | Nome s -> s
+   | ConstInt n -> string_of_int n
+   | ConstFloat n -> string_of_float n
+   | ConstChar n -> String.make 1 n
+   | ConstString n -> n
+   | Temp n  -> "t" ^ string_of_int n
+
+let tipo_to_str t =
+    match t with
+      TipoInt -> "inteiro"
+    | TipoString -> "string"
+    | TipoBool -> "bool"
+    | TipoVoid -> "void"
+    | TipoReal -> "double"
+    | TipoChar -> "char"
+    | TipoArranjo (t,i,f) -> "arranjo"
+    | TipoRegistro cs -> "registro"
+
+
+let op_to_str op = 
+  match op with
+  | Mais  -> "+"
+  | Menos -> "-"
+  | Mult  -> "*"
+  | Div   -> "/"
+  | Menor -> "<"
+  | MenorIgual -> ">="
+  | Igual -> "="
+  | MaiorIgual -> ">="
+  | Difer -> "!="
+  | Maior -> ">"
+  | And     -> "&&"
+  | Or    -> "||"
+  | Concat -> "^^"
+  | Mod -> "%"
+  | Expoente -> "^"
+
+let rec args_to_str ats =
+   match ats with
+   | [] -> ""
+   | [(a,t)] -> 
+     let str = sprintf "(%s,%s)" (endr_to_str a) (tipo_to_str t) in
+     str
+   | (a,t) :: ats -> 
+     let str = sprintf "(%s,%s)" (endr_to_str a) (tipo_to_str t) in
+     str ^ ", " ^ args_to_str ats
+  
+let rec escreve_cod3 c =
+  match c with
+  | AtribBin (x,y,op,z) -> 
+      sprintf "%s := %s %s %s\n" (endr_to_str x) 
+                                (endr_to_str y) (op_to_str (fst op)) (endr_to_str z)
+  | Copia (x,y) ->
+      sprintf "%s := %s\n" (endr_to_str x) (endr_to_str y)
+  | Goto l ->
+      sprintf "goto %s\n" (escreve_cod3 l)
+  | If (x,l) -> 
+      sprintf "if %s goto %s\n" (endr_to_str x) (escreve_cod3 l)
+  | IfFalse (x,l) -> 
+      sprintf "ifFalse %s goto %s\n" (endr_to_str x) (escreve_cod3 l)
+  | IfRelgoto (x,oprel,y,l) -> 
+      sprintf "if %s %s %s goto %s\n" (endr_to_str x) (op_to_str (fst oprel)) 
+                                     (endr_to_str y) (escreve_cod3 l)
+  | Call (p,ats,t) -> sprintf "call %s(%s): %s\n" p (args_to_str ats) (tipo_to_str t)
+  | Recebe (x,t) -> sprintf "recebe %s,%s\n" x (tipo_to_str t)
+  | Local (x,t)  -> sprintf "local %s,%s\n" x (tipo_to_str t)
+  | Global (x,t) -> sprintf "global %s,%s\n" x (tipo_to_str t)
+  | CallFn (x,p,ats,t) -> 
+      sprintf "%s := call %s(%s): %s\n" (endr_to_str x) p (args_to_str ats) (tipo_to_str t)
+  | Return x -> 
+    (match x with
+       None   -> "return\n"
+     | Some x -> sprintf "return %s\n" (endr_to_str x) )
+  | BeginFun (id,np,nl) -> sprintf "beginFun %s(%d,%d)\n" id np nl
+  | EndFun -> "endFun\n\n"
+  | Rotulo r -> sprintf "%s: " r
+
+
+let rec escreve_codigo cod =
+  match cod with
+  | [] -> printf "\n"
+  | c::cs -> printf "%s" (escreve_cod3 c); 
+             escreve_codigo cs 
+
+(* Código do tradutor para código de 3 endereço *)
+
+let pega_tipo exp = 
+  match exp with
+  | ExpVar (v, t) -> t
+  | ExpInt (n, t) -> t
+  | ExpReal (n, t) -> t
+  | ExpString (n, t) -> t
+  | ExpChar (n, t) -> t
+  | ExpBool (n, t) -> t
+  | ExpOp ((op,t),_,_) -> t
+  | ExpChamada (id, args, t) -> t
+  | _ -> failwith "pega_tipo: não implementado"
+
+
+let rec traduz_exp exp =
+  match exp with
+  | ExpInt (n, TipoInt) -> 
+     let t = novo_temp () in
+    (t, [Copia (t, ConstInt n)])
+
+  | ExpReal (n, TipoReal) -> 
+     let t = novo_temp () in
+    (t, [Copia (t, ConstFloat n)])
+    
+  | ExpChar (n, TipoChar) -> 
+     let t = novo_temp () in
+    (t, [Copia (t, ConstChar n)])
+    
+  | ExpString (n, TipoString) -> 
+     let t = novo_temp () in
+    (t, [Copia (t, ConstString n)])
+
+  | ExpVar (v, tipo) ->
+    (match v with
+       VarSimples nome ->
+       let id = fst nome in
+       ((Nome id), [])
+    )
+
+  | ExpOp (op, exp1, exp2) ->
+    let (endr1, codigo1) = let (e1,t1) = exp1 in traduz_exp e1
+    and (endr2, codigo2) = let (e2,t2) = exp2 in traduz_exp e2
+    and t = novo_temp () in
+    let codigo = codigo1 @ codigo2 @ [AtribBin (t, endr1, op, endr2)] in
+    (t, codigo)    
+
+  | ExpChamada (id, args, tipo_fn) ->
+      let (enderecos, codigos) = List.split (List.map traduz_exp args) in
+      let tipos = List.map pega_tipo args in
+      let endr_tipos = List.combine enderecos tipos  
+      and t = novo_temp () in 
+      let codigo = (List.concat codigos) @
+                   [CallFn (t, id, endr_tipos, tipo_fn)]
+      in
+        (t, codigo)
+  | _ -> failwith "traduz_exp: não implementado"
+
+
+let rec traduz_cmd cmd =
+  match cmd with
+  | CmdRetorno exp ->
+    (match exp with
+     | None -> [Return None]
+     | Some e ->
+       let (endr_exp, codigo_exp) = traduz_exp e in
+       codigo_exp @ [Return (Some endr_exp)]
+    )
+  | CmdAtrib (elem, ExpInt (n, TipoInt)) ->
+    let (endr_elem, codigo_elem) = traduz_exp elem 
+    in codigo_elem @ [Copia (endr_elem, ConstInt n)]
+
+  | CmdAtrib (elem, exp) ->
+    let (endr_exp, codigo_exp) = traduz_exp exp 
+    and (endr_elem, codigo_elem) = traduz_exp elem in
+    let codigo = codigo_exp @ codigo_elem @ [Copia (endr_elem, endr_exp)] 
+    in codigo
+
+  | CmdSe (teste, entao, senao) ->
+    let (endr_teste, codigo_teste) = traduz_exp teste 
+    and codigo_entao = traduz_cmds entao 
+    and rotulo_falso = novo_rotulo "L" in
+    (match senao with
+        | None -> codigo_teste @ 
+                  [IfFalse (endr_teste, rotulo_falso)] @
+                  codigo_entao @ 
+                  [rotulo_falso]
+        | Some cmds -> 
+          let codigo_senao = traduz_cmds cmds 
+          and rotulo_fim = novo_rotulo "L" in
+              codigo_teste @ 
+              [IfFalse (endr_teste, rotulo_falso)] @
+              codigo_entao @ 
+              [Goto rotulo_fim] @
+              [rotulo_falso] @ codigo_senao @
+              [rotulo_fim]
+    )
+  | ComandoExpress (ExpChamada (id, args, tipo_fn)) -> 
+      let (enderecos, codigos) = List.split (List.map traduz_exp args) in
+      let tipos = List.map pega_tipo args in
+      let endr_tipos = List.combine enderecos tipos in
+      (List.concat codigos) @
+      [Call (id, endr_tipos, tipo_fn)]
+
+  | ComandoExpress _ -> []
+
+  | CmdSaida args -> 
+      let (end1,cod) = (traduz_exp (ExpString ("\\n", TipoString))) in 
+      let (enderecos, codigos) = List.split (List.map traduz_exp args) in
+      let tipos = List.map pega_tipo args in
+      let endr_tipos = (List.combine enderecos tipos)@[(end1,TipoString)] in
+      cod @
+      (List.concat codigos) @
+      [Call ("print", endr_tipos, TipoVoid)]
+
+  | CmdEntrada arg -> 
+      let (endereco, codigo) =  (traduz_exp arg) in
+      let tipo = pega_tipo arg in
+      let endr_tipo = List.combine [endereco] [tipo] in
+      (List.concat [codigo]) @
+      [Call ("read", endr_tipo, TipoVoid)]
+
+  (* | CmdEntrada args -> 
+      let (end1,cod) = (traduz_exp (ExpString ("\\n", TipoString))) in
+      let (enderecos, codigos) = List.split (List.map traduz_exp args) in
+      let tipos = List.map pega_tipo args in
+      let endr_tipos = List.combine enderecos tipos in
+      cod @
+      (List.concat codigos) @
+      [Call ("read", endr_tipos, TipoVoid)] @
+      [Call ("print", [(end1,TipoString)], TipoVoid)] *)
+      
+          
+  | CmdWhile (teste, doit) ->
+    let (endr_teste, codigo_teste) = traduz_exp teste 
+    and codigo_doit = traduz_cmds doit
+    and rotulo_inicio = novo_rotulo "W"
+    and rotulo_fim = novo_rotulo "W"  in
+      [rotulo_inicio] @ codigo_teste         @ [IfFalse (endr_teste, rotulo_fim)] @
+      codigo_doit     @ [Goto rotulo_inicio] @ [rotulo_fim]       
+
+  | CmdFor (variavel, exp, condicao, var,inc, doit) ->
+    let (endr_teste, codigo_teste) = traduz_exp condicao 
+    and codigo_atrib = traduz_cmds [CmdAtrib (variavel, exp)]
+    and codigo_doit = traduz_cmds ( List.append doit [CmdAtrib (var, inc)] )
+    and rotulo_inicio = novo_rotulo "W"
+    and rotulo_fim = novo_rotulo "W" in
+      codigo_atrib @ [rotulo_inicio]      @ codigo_teste @ [IfFalse (endr_teste, rotulo_fim)] @
+      codigo_doit  @ [Goto rotulo_inicio] @ [rotulo_fim]
+
+  | CmdCase (teste, cases, default) ->
+  let rotulo_fim = novo_rotulo "L" in
+  (* gera_cases traduz cada comando da lista de cases um por vez
+    e traduz os cases da cauda recursivamente.
+    O caso base, (quando a lista está vazia) acontece quando toda a lista 
+    já foi percorrida e deve-se gerar a tradução para a parte "default" do comando switch*)
+    let rec gera_cases cases = (match cases with
+        Case (l, c)::tail ->let rotulo_proxima = novo_rotulo "C" in
+          let codigo_doit = traduz_cmds c in
+          let (end_exp, codigo_exp) = traduz_exp 
+          (* Aqui é gerado o teste de igualdade para cada case.
+              Note que é necessário otimizar esse código, pois ele interpreta "teste" 
+              a cada Case desnecessariamente *)
+          (* pega_tipo teste é necessário para montar a expressão, note que não estamos preocupados
+            em qual tipo é esse, pois no módulo semãntico, já foi verificado que este é válido e 
+            é o mesmo para operador e operandos *)
+          (ExpOp ((Igual, (pega_tipo teste)), (teste, (pega_tipo teste)), (l, (pega_tipo teste)))) in
+          codigo_exp
+          @ [IfFalse (end_exp, rotulo_proxima)] 
+          @ codigo_doit
+           (* Nesta implementação, pode haver dois casses com o mesmo valor, portanto ambos devem ser executados.
+            Caso queira mudar para executar somente o primeiro que casar com a expressão de teste,
+            descomente a próxima linha *)
+          (* @ [Goto rotulo_fim]   *)
+          @ [rotulo_proxima] 
+          @ (gera_cases tail)
+        | [] -> (match default with
+            None -> [] 
+            | Some cmds_default -> traduz_cmds cmds_default
+          (* Aqui não é necessário um Goto rotulo_fim,
+            pois tal rótulo já se encontra logo em seguida no código *)
+        )
+    )
+     in (gera_cases cases) @ [rotulo_fim]
+
+
+
+  
+and traduz_cmds cmds =
+  match cmds with
+  | [] -> []
+  | cmd :: cmds ->
+     let codigo = traduz_cmd cmd in
+     codigo @ traduz_cmds cmds
+
+let traduz_fun ast =
+  let trad_local x =
+    match x with
+      DecVar ((id,pos),t) -> Local (id,t)
+  in
+  match ast with
+    Funcao {fn_nome; fn_tiporet; fn_formais; fn_locais; fn_corpo} ->  
+    let nome = fst fn_nome
+    and formais = List.map (fun ((id,pos),tipo) -> Recebe (id,tipo)) fn_formais
+    and nformais = List.length fn_formais
+    and locais = List.map trad_local fn_locais
+    and nlocais = List.length fn_locais 
+    and corpo = traduz_cmds fn_corpo 
+    in
+    [BeginFun (nome,nformais,nlocais)] @ formais @ locais @ corpo @ [EndFun]
+        
+
+let tradutor ast_tipada =
+  let trad_global x =
+    match x with
+      DecVar ((id,pos),t) -> Global (id,t)
+  in
+  let _ = zera_contadores () in 
+  let (Programa (decs_globais, decs_funs, corpo)) = ast_tipada in
+  let globais_trad = List.map trad_global decs_globais in
+  let funs_trad = List.map traduz_fun decs_funs in
+  let corpo_trad = traduz_cmds corpo in
+  globais_trad @ (List.concat funs_trad) @ 
+  [BeginFun ("main",0,0)] @ corpo_trad @ [EndFun]
+\end{terminal}
+\subsubsection{Cod3EndTest.ml}
+\begin{terminal}
+open Printf
+open Lexing
+
+open Ast
+exception Erro_Sintatico of string
+
+module S = MenhirLib.General (* Streams *)
+module I = Sintatico.MenhirInterpreter
+
+open Semantico
+open Codigo
+open Cod3End
+
+let message =
+  fun s ->
+    match s with
+    | 0 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 1 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 34 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 35 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 36 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 72 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 47 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 48 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 49 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 51 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 52 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 55 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 56 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 57 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 58 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 61 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 62 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 63 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 64 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 73 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 74 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 95 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 89 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 97 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 98 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 99 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 65 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 66 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 53 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 67 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 68 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 59 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 60 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 42 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 41 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 70 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 75 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 77 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 76 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 105 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 84 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 43 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 85 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 86 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 45 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 46 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 102 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 103 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 81 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 3 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 2 ->
+        "<YOUR SYNTAX ERROR MESSAGE HERE>\n"
+    | 6 ->
+        "estado 6: esperava um tipo. Exemplo:\n   x : inteiro;\n"
+    | 7 ->
+        "estado 7: esperava a definicao de um campo. Exemplo:\n   i: registro\n         parte_real: inteiro;\n         parte_imag: inteiro;\n      fim registro;\n      "
+    | 8 ->
+        "estado 8: esperava ':'. Exemplo:\n   x: inteiro;\n   "
+    | 9 ->
+        "estado 9: esperava um tipo. Exemplo:\n   x: inteiro;\n"
+    | 25 ->
+        "estado 25: esperva um ';'.\n"
+    | 26 ->
+        "estado 26: uma declaracao foi encontrada. Para continuar era\n   esperado uma outra declara\195\167\195\163o ou a palavra 'inicio'.\n"
+    | 29 ->
+        "estado 29: espera a palavra 'registro'. Exemplo:\n   i: registro\n         parte_real: inteiro;\n         parte_imag: inteiro;\n      fim registro;\n"
+    | 31 ->
+        "estado 31: esperava um ';'. \n"
+    | 107 ->
+        "estado 107: uma declaracao foi encontrada. Para continuar era\n   esperado uma outra declara\195\167\195\163o ou a palavra 'inicio'.\n"
+    | 13 ->
+        "estado 13: esperava um '['. Exemplo:\n   arranjo [1..10] de inteiro;\n"
+    | 14 ->
+        "estado 14: esperava os limites do vetor. Exemplo:\n   arranjo [1..10] de inteiro;\n"
+    | 15 ->
+        "estado 15: esperava '..'. Exemplo:\n   1 .. 10\n"
+    | 16 ->
+        "estado 16: esperava um numero inteiro. Exemplo:\n   1 .. 10\n"
+    | 18 ->
+        "estado 18: esperava um ']'. Exemplo\n   arranjo [1..10] de inteiro;\n"
+    | 19 ->
+        "estado 19: esperava a palavra reservada 'de'. Exemplo:\n   arranjo [1..10] de inteiro;\n"
+    | 20 ->
+        "estado 20: esperava um tipo. Exemplo\n   arranjo [1..10] de inteiro;\n"
+    | _ ->
+        raise Not_found
+
+let posicao lexbuf =
+    let pos = lexbuf.lex_curr_p in
+    let lin = pos.pos_lnum
+    and col = pos.pos_cnum - pos.pos_bol - 1 in
+    sprintf "linha %d, coluna %d" lin col
+
+(* [pilha checkpoint] extrai a pilha do autômato LR(1) contida em checkpoint *)
+
+let pilha checkpoint =
+  match checkpoint with
+  | I.HandlingError amb -> I.stack amb
+  | _ -> assert false (* Isso não pode acontecer *)
+
+let estado checkpoint : int =
+  match Lazy.force (pilha checkpoint) with
+  | S.Nil -> (* O parser está no estado inicial *)
+     0
+  | S.Cons (I.Element (s, _, _, _), _) ->
+     I.number s
+
+let sucesso v = Some v
+
+let falha lexbuf (checkpoint : (Sast.expressao Ast.programa) I.checkpoint) =
+  let estado_atual = estado checkpoint in
+  let msg = message estado_atual in
+  raise (Erro_Sintatico (Printf.sprintf "%d - %s.\n"
+                                      (Lexing.lexeme_start lexbuf) msg))
+
+let loop lexbuf resultado =
+  let fornecedor = I.lexer_lexbuf_to_supplier Lexico.token lexbuf in
+  I.loop_handle sucesso (falha lexbuf) fornecedor resultado
+
+
+let parse_com_erro lexbuf =
+  try
+    Some (loop lexbuf (Sintatico.Incremental.programa lexbuf.lex_curr_p))
+  with
+  | Lexico.Erro msg ->
+     printf "Erro lexico na %s:\n\t%s\n" (posicao lexbuf) msg;
+     None
+  | Erro_Sintatico msg ->
+     printf "Erro sintático na %s %s\n" (posicao lexbuf) msg;
+     None
+
+let parse s =
+  let lexbuf = Lexing.from_string s in
+  let ast = parse_com_erro lexbuf in
+  ast
+
+let parse_arq nome =
+  let ic = open_in nome in
+  let lexbuf = Lexing.from_channel ic in
+  let ast = parse_com_erro lexbuf in
+  let _ = close_in ic in
+  ast
+
+let verifica_tipos nome =
+  let ast = parse_arq nome in
+  match ast with
+    Some (Some ast) -> semantico ast
+  | _ -> failwith "Nada a fazer!\n"
+
+let traduz nome =
+  let (arv,tab) = verifica_tipos nome in
+  tradutor arv
+
+let imprime_traducao cod =
+   let _ = printf "\n" in
+   escreve_codigo cod
+
+\end{terminal}
+
+\subsection{Para compilar:}
+.ocamlinit
+\begin{terminal}
+let () =
+  try Topdirs.dir_directory (Sys.getenv "OCAML_TOPLEVEL_PATH")
+  with Not_found -> ()
+;;
+
+#use "topfind";;
+#require "menhirLib";;
+#directory "_build";;
+#load "sintatico.cmo";;
+#load "lexico.cmo";;
+#load "ast.cmo";;
+#load "sast.cmo";;
+#load "tast.cmo";;
+#load "tabsimb.cmo";;
+#load "ambiente.cmo";;
+#load "semantico.cmo";;
+#load "Codigo.cmo";;
+#load "Cod3End.cmo";;
+#load "cod3endTest.cmo";;
+
+open Ast
+open Ambiente
+open Codigo
+open Cod3End
+open Cod3endTest
+\end{terminal}
+No Terminal
+\begin{terminal}
+    ocamlbuild -use-ocamlfind -use-menhir -menhir "menhir --table" -package menhirLib cod3endTest.byte
+   
+##Para usar, entre no ocaml 
+
+    rlwrap ocaml
+
+
+##e se desejar ver apenas a árvore sintática que sai do analisador sintático, digite
+
+     parse_arq "exemplos/Tipos/ex8.tip";;
+
+## Depois, para ver a saída do analisador semântico já com a árvore anotada com 
+
+   o tipos, digite:
+
+   verifica_tipos "exemplos/Tipos/ex8.tip";;
+
+ ##Note que o analisador semântico está retornando também o ambiente global. Se quiser separá-los, digite:
+
+   let (arv, amb) = verifica_tipos "exemplos/Tipos/ex8.tip";;
+   
+## Para ver o código de 3 endereços:
+
+   traduz "exemplos/Tipos/ex8.tip";;
+   
+## ou se quiser ver em um formato mais legível:
+   
+    let cod = traduz "exemplos/Tipos/ex8.tip" in imprime_traducao cod;;
+\end{terminal}
+
+\subsubsection{Testes}
+Teste micro10
+\begin{terminal}
+# let cod = traduz "micro10.js" in imprime_traducao cod;;
+
+global numero,inteiro
+global fat,inteiro
+beginFun fatorial(1,0)
+recebe numero,inteiro
+t0 := 0
+t1 := numero >= t0
+ifFalse t1 goto L0: 
+t2 := 1
+return t2
+goto L1: 
+L0: t3 := 1
+t4 := numero - t3
+t5 := call fatorial((t4,inteiro)): inteiro
+t6 := numero * t5
+return t6
+L1: endFun
+
+beginFun main(0,0)
+t7 := \n
+t8 := Digite um numero
+call print((t8,string), (t7,string)): void
+call read((numero,inteiro)): void
+t9 := call fatorial((numero,inteiro)): inteiro
+fat := t9
+t10 := \n
+t11 := O fatorial de: 
+t12 :=  é
+call print((t11,string), (numero,inteiro), (t12,string), (fat,inteiro), (t10,string)): void
+endFun
+
+
+- : unit = ()
+\end{terminal}
+Teste micro08
+\begin{terminal}
+# let cod = traduz "micro08.js" in imprime_traducao cod;;
+
+beginFun main(0,1)
+local numero,inteiro
+numero := 1
+W0: t0 := 0
+t1 := numero != t0
+ifFalse t1 goto W1: 
+t2 := \n
+t3 := Digite um numero: 
+call print((t3,string), (t2,string)): void
+call read((numero,inteiro)): void
+t4 := 10
+t5 := numero > t4
+ifFalse t5 goto L0: 
+t6 := \n
+t7 := O numero
+t8 := eh maior que 10
+call print((t7,string), (numero,inteiro), (t8,string), (t6,string)): void
+goto L1: 
+L0: t9 := \n
+t10 := O numero
+t11 := eh menor que 10
+call print((t10,string), (numero,inteiro), (t11,string), (t9,string)): void
+L1: goto W0: 
+W1: endFun
+
+beginFun main(0,0)
+call main(): void
+endFun
+
+
+- : unit = ()
+
+\end{terminal}
+
 %%\newpage
 %%\addcontentsline{toc}{section}{Conclusões}
 %%\section*{Conclusões}
@@ -4216,7 +5058,9 @@ Some
         
         \item \text{Aula: }aulaSemantico.pdf
         
-       \item \text{Arquivo Interprete: }ExInterpret.zip
+       \item \text{Aula: }Interprete
+       
+       \item \text{Aula: }Representação Intermediaria e Código de Três Endereços
     
     \end{enumerate}
 
