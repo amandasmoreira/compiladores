@@ -147,7 +147,7 @@ let message =
     | 20 ->
         "estado 20: esperava um tipo. Exemplo\n   arranjo [1..10] de inteiro;\n"
     | _ ->
-        Printf.sprintf "%d" s
+        raise Not_found
 
 let posicao lexbuf =
     let pos = lexbuf.lex_curr_p in
@@ -213,8 +213,8 @@ let verifica_tipos nome =
 
 (* Para compilar:
      ocamlbuild -use-ocamlfind -use-menhir -menhir "menhir --table" -package menhirLib semanticoTest.byte
-
-   Para usar, entre no ocaml
+  
+   Para usar, entre no ocaml 
 
      rlwrap ocaml
 
@@ -222,16 +222,16 @@ let verifica_tipos nome =
 
      parse_arq "exemplos/ex2.tip";;
 
-   Depois, para ver a saída do analisador semântico já com a árvore anotada com
+   Depois, para ver a saída do analisador semântico já com a árvore anotada com 
    o tipos, digite:
 
    verifica_tipos "exemplos/ex2.tip";;
 
-   Note que o analisador semântico está retornando também o ambiente global. Se
+   Note que o analisador semântico está retornando também o ambiente global. Se 
    quiser separá-los, digite:
 
    let (arv, amb) = verifica_tipos "exemplos/ex2.tip";;
 
-
+    
 
  *)
